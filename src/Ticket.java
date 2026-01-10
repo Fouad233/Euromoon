@@ -1,9 +1,9 @@
 public class Ticket {
-    private Passenger passenger;
-    private String klasse;
-    private Reis reis;
+    private final Passenger passenger;
+    private final Klasse klasse;
+    private final Reis reis;
 
-    public Ticket(Passenger passenger, String klasse, Reis reis){
+    public Ticket(Passenger passenger, Klasse klasse, Reis reis){
         this.passenger = passenger;
         this.klasse = klasse;
         this.reis = reis;
@@ -13,7 +13,7 @@ public class Ticket {
         return passenger;
     }
 
-    public String getKlasse() {
+    public Klasse getKlasse() {
         return klasse;
     }
 
@@ -21,8 +21,9 @@ public class Ticket {
         return reis;
     }
 
+
     @Override
     public String toString(){
-        return "Klasse: " + klasse;
+        return "Ticket{" + "klasse=" + klasse + "}";
     }
 }
