@@ -1,6 +1,6 @@
 public enum LocomotiefType {
-    CLASS_373(12),
-    CLASS_374(14);
+    TYPE_373(8),
+    TYPE_374(10);
 
     private final int maxWagons;
 
