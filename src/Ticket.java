@@ -1,12 +1,14 @@
+import java.util.Objects;
+
 public class Ticket {
     private final Passenger passenger;
     private final Klasse klasse;
     private final Reis reis;
 
-    public Ticket(Passenger passenger, Klasse klasse, Reis reis){
-        this.passenger = passenger;
-        this.klasse = klasse;
-        this.reis = reis;
+    public Ticket(Passenger passenger, Klasse klasse, Reis reis) {
+        this.passenger = Objects.requireNonNull(passenger, "passenger mag niet leeg zijn");
+        this.klasse = Objects.requireNonNull(klasse, "klasse mag niet leeg zijn");
+        this.reis = Objects.requireNonNull(reis, "reis mag niet leeg zijn");
     }
 
     public Passenger getPassenger() {
@@ -21,9 +23,8 @@ public class Ticket {
         return reis;
     }
 
-
     @Override
-    public String toString(){
-        return "Ticket{" + "klasse=" + klasse + "}";
+    public String toString() {
+        return "Ticket{reis=" + reis.getCode() + ", rrn=" + passenger.getRijksregisternummer() + ", klasse=" + klasse + "}";
     }
 }

@@ -14,9 +14,4 @@ public class Passenger extends Person {
     public void setTicket(Ticket ticket) {
         this.ticket = ticket;
     }
-
-    @Override
-    public String toString() {
-        return super.toString() + "Ticket: " + (ticket != null ? ticket : "Geen");
-    }
 }
