@@ -4,47 +4,55 @@ import java.util.List;
 import java.util.Objects;
 
 public class Reis {
-
     private final String code;
     private final String vertrekStation;
     private final String aankomstStation;
     private final LocalDateTime vertrekTijd;
     private final Trein trein;
 
-    private final int plaatsenEersteKlasse;
-    private final int plaatsenTweedeKlasse;
+    private final int plaatsenEerste;
+    private final int plaatsenTweede;
 
-    private Conductor conductor;
-    private final List<Steward> stewards = new ArrayList<>();
-
+    private final List<Staff> personeel = new ArrayList<>();
     private final List<Passenger> passengers = new ArrayList<>();
 
-    public Reis(String code,
-                String vertrekStation,
-                String aankomstStation,
-                LocalDateTime vertrekTijd,
-                Trein trein,
-                int plaatsenEersteKlasse,
-                int plaatsenTweedeKlasse) {
+    public Reis(String code, String vertrekStation, String aankomstStation, LocalDateTime vertrekTijd,
+                Trein trein, int plaatsenEerste, int plaatsenTweede) {
 
         this.code = requireNonBlank(code, "code");
         this.vertrekStation = requireNonBlank(vertrekStation, "vertrekStation");
         this.aankomstStation = requireNonBlank(aankomstStation, "aankomstStation");
-        this.vertrekTijd = Objects.requireNonNull(vertrekTijd, "vertrekTijd mag niet null zijn");
-        this.trein = Objects.requireNonNull(trein, "trein mag niet null zijn");
 
-        if (plaatsenEersteKlasse < 0 || plaatsenTweedeKlasse < 0) {
-            throw new IllegalArgumentException("plaatsen mogen niet negatief zijn");
+        if (this.vertrekStation.equalsIgnoreCase(this.aankomstStation)) {
+            throw new IllegalArgumentException("Vertrek en aankomst mogen niet hetzelfde zijn.");
         }
-        this.plaatsenEersteKlasse = plaatsenEersteKlasse;
-        this.plaatsenTweedeKlasse = plaatsenTweedeKlasse;
+
+        this.vertrekTijd = Objects.requireNonNull(vertrekTijd, "vertrektijd mag niet leeg zijn");
+        if (this.vertrekTijd.isBefore(LocalDateTime.now())) {
+            throw new IllegalArgumentException("Datum/tijd mag niet in het verleden liggen.");
+        }
+
+        this.trein = Objects.requireNonNull(trein, "trein mag niet leeg zijn");
+
+        if (plaatsenEerste < 0 || plaatsenTweede < 0) {
+            throw new IllegalArgumentException("Plaatsen mogen niet negatief zijn.");
+        }
+
+        int totalSeats = plaatsenEerste + plaatsenTweede;
+        int trainCap = trein.getTotaleCapaciteit();
+        if (trainCap > 0 && totalSeats > trainCap) {
+            throw new IllegalArgumentException("Plaatsen (" + totalSeats + ") mogen niet groter zijn dan treincapaciteit (" + trainCap + ").");
+        }
+
+        this.plaatsenEerste = plaatsenEerste;
+        this.plaatsenTweede = plaatsenTweede;
     }
 
-    private static String requireNonBlank(String s, String field) {
-        if (s == null || s.isBlank()) {
-            throw new IllegalArgumentException(field + " mag niet leeg zijn");
+    private static String requireNonBlank(String value, String field) {
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException(field + " is verplicht.");
         }
-        return s.trim();
+        return value.trim();
     }
 
     public String getCode() { return code; }
@@ -53,67 +61,49 @@ public class Reis {
     public LocalDateTime getVertrekTijd() { return vertrekTijd; }
     public Trein getTrein() { return trein; }
 
-    public Conductor getConductor() { return conductor; }
-    public List<Steward> getStewards() { return List.copyOf(stewards); }
+    public List<Staff> getPersoneel() { return List.copyOf(personeel); }
     public List<Passenger> getPassengers() { return List.copyOf(passengers); }
 
-    public void setConductor(Conductor conductor) {
-        this.conductor = Objects.requireNonNull(conductor, "conductor mag niet null zijn");
+    public void voegPersoneelToe(Staff s) {
+        Objects.requireNonNull(s, "personeel mag niet leeg zijn");
+        if (personeel.contains(s)) return;
+        personeel.add(s);
     }
 
-    public void addSteward(Steward steward) {
-        stewards.add(Objects.requireNonNull(steward, "steward mag niet null zijn"));
-    }
+    public boolean heeftPlaats(Klasse klasse) {
+        int geboektEerste = 0;
+        int geboektTweede = 0;
 
-    public boolean hasAvailableSeat(Klasse klasse) {
-        long bookedEerste = passengers.stream()
-                .filter(p -> p.getTicket() != null && p.getTicket().getKlasse() == Klasse.EERSTE)
-                .count();
-
-        long bookedTweede = passengers.stream()
-                .filter(p -> p.getTicket() != null && p.getTicket().getKlasse() == Klasse.TWEEDE)
-                .count();
+        for (Passenger p : passengers) {
+            if (p.getTicket() == null) continue;
+            if (p.getTicket().getKlasse() == Klasse.EERSTE) geboektEerste++;
+            if (p.getTicket().getKlasse() == Klasse.TWEEDE) geboektTweede++;
+        }
 
         return switch (klasse) {
-            case EERSTE -> bookedEerste < plaatsenEersteKlasse;
-            case TWEEDE -> bookedTweede < plaatsenTweedeKlasse;
+            case EERSTE -> geboektEerste < plaatsenEerste;
+            case TWEEDE -> geboektTweede < plaatsenTweede;
         };
     }
 
     public boolean addPassenger(Passenger passenger) {
-        Objects.requireNonNull(passenger, "passenger mag niet null zijn");
-
+        Objects.requireNonNull(passenger, "passenger mag niet leeg zijn");
         Ticket t = passenger.getTicket();
-        if (t == null) {
-            System.out.println("Fout: Passenger heeft geen ticket.");
-            return false;
-        }
-        if (t.getReis() != this) {
-            System.out.println("Fout: Ticket hoort niet bij deze reis.");
-            return false;
-        }
-        if (!hasAvailableSeat(t.getKlasse())) {
-            System.out.println("Fout: Geen plaatsen meer beschikbaar in " + t.getKlasse());
-            return false;
-        }
+        if (t == null) return false;
+        if (t.getReis() != this) return false;
+        if (!heeftPlaats(t.getKlasse())) return false;
+        if (passengers.contains(passenger)) return false;
 
-        return passengers.add(passenger);
+        passengers.add(passenger);
+        return true;
     }
 
-    public boolean isReadyToDepart() {
-        return conductor != null && stewards.size() >= 3;
+    public String detail() {
+        return toString() + " | personeel=" + personeel.size() + " | passengers=" + passengers.size();
     }
 
     @Override
     public String toString() {
-        return "Reis{" +
-                "code='" + code + '\'' +
-                ", " + vertrekStation + " -> " + aankomstStation +
-                ", vertrekTijd=" + vertrekTijd +
-                ", trein=" + trein +
-                ", conductor=" + (conductor != null ? conductor.getNaam() : "GEEN") +
-                ", stewards=" + stewards.size() +
-                ", passengers=" + passengers.size() +
-                '}';
+        return "Reis{" + code + ": " + vertrekStation + "->" + aankomstStation + ", vertrek=" + vertrekTijd + "}";
     }
 }
